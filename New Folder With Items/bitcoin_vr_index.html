@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitcoin Block 3D Metaverse 360°</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script type="text/javascript" src="https://mempool.space/mempool.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #0a0a0a, #1a1a2e, #16213e);
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+        
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #00ff88;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+        }
+        
+        #searchInput {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            padding: 10px;
+            border-radius: 5px;
+            width: 200px;
+            margin-right: 10px;
+            font-family: inherit;
+        }
+        
+        #searchInput::placeholder {
+            color: rgba(0, 255, 136, 0.6);
+        }
+        
+        button {
+            background: #00ff88;
+            color: #000;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: inherit;
+        }
+        
+        button:hover {
+            background: #00cc6a;
+        }
+        
+        button:disabled {
+            background: #555;
+            color: #999;
+            cursor: not-allowed;
+        }
+        
+        #blockInfo {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #ff6b00;
+            color: #ff6b00;
+            min-width: 300px;
+            max-width: 400px;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #00ff88;
+            font-size: 18px;
+            z-index: 100;
+        }
+        
+        .info-label {
+            color: #ccc;
+            font-weight: bold;
+        }
+        
+        .info-value {
+            color: #ff6b00;
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: #00ff88;
+            font-size: 12px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #00ff88;
+        }
+        
+        #hideToggle {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 200;
+            background: rgba(0, 255, 136, 0.9);
+            color: #000;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+        }
+        
+        #hideToggle:hover {
+            background: rgba(0, 255, 136, 1);
+            transform: scale(1.1);
+            box-shadow: 0 0 25px rgba(0, 255, 136, 0.8);
+        }
+        
+        #hideToggle.ui-hidden-state {
+            background: rgba(255, 107, 0, 0.9);
+            box-shadow: 0 0 20px rgba(255, 107, 0, 0.6);
+            animation: pulse 2s infinite;
+        }
+        
+        #hideToggle.ui-hidden-state:hover {
+            background: rgba(255, 107, 0, 1);
+            box-shadow: 0 0 30px rgba(255, 107, 0, 0.9);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.9; }
+            50% { opacity: 0.6; }
+        }
+        
+        #vrButton {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 200;
+            background: linear-gradient(135deg, #ff6b00, #ff8533);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            display: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 20px rgba(255, 107, 0, 0.4);
+        }
+        
+        #vrButton:hover {
+            background: linear-gradient(135deg, #ff8533, #ffaa66);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 107, 0, 0.6);
+        }
+        
+        #vrButton.vr-active {
+            background: linear-gradient(135deg, #00ff88, #33ffaa);
+            box-shadow: 0 5px 20px rgba(0, 255, 136, 0.4);
+        }
+        
+        .vr-ui {
+            transform: scale(2);
+            transform-origin: center;
+        }
+        
+        .ui-hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-20px);
+        }
+        
+        .ui-visible {
+            opacity: 1;
+            pointer-events: all;
+            transform: translateY(0);
+        }
+        
+        #ui, #blockInfo, #controls {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        #immersiveInfo {
+            position: absolute;
+            bottom: 60px;
+            left: 20px;
+            color: #00ff88;
+            font-size: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #00ff88;
+            max-width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <button id="hideToggle" title="Hide UI (Press H)">👁️</button>
+        
+        <div id="ui" class="ui-visible">
+            <input type="text" id="searchInput" placeholder="Enter block height (e.g. 777777)" />
+            <button id="searchBtn">Visualize Block</button>
+            <button id="randomBtn">Random Block</button>
+            <div style="color: #888; font-size: 10px; margin-top: 5px;">
+                🌍 360° immersive biomes + full surrounding experience
+            </div>
+        </div>
+        
+        <div id="blockInfo" class="ui-visible" style="display: none;">
+            <div id="blockDetails"></div>
+        </div>
+        
+        <div id="loading" style="display: none;">Loading block data...</div>
+        
+        <div id="controls" class="ui-visible">
+            🎮 Mouse: Orbit | Wheel: Zoom | WASD: Move | H: Hide UI
+            <br>🌍 Each block = unique 360° biome world with surrounding effects
+        </div>
+        
+        <div id="immersiveInfo" class="ui-visible">
+            🥽 VR Mode adds: 360° skybox, surrounding particles, data spheres & transaction clouds
+        </div>
+        
+        <button id="vrButton">🥽 Enter 360° VR</button>
+    </div>
+
+    <script>
+        // Scene setup
+        let scene, camera, renderer, controls;
+        let blockMesh, particles, gridHelper;
+        let currentBlock = null;
+        
+        // VR setup
+        let vrSession = null;
+        let vrRefSpace = null;
+        let vrControllers = [];
+        let vrHands = [];
+        let isVRActive = false;
+        let vrTeleportMarker = null;
+        let vrUI = null;
+        
+        // Camera movement
+        let keys = { w: false, a: false, s: false, d: false };
+        let mouseX = 0, mouseY = 0;
+        let isMouseDown = false;
+        
+        function init() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.fog = new THREE.Fog(0x0a0a0a, 50, 200);
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 20, 50);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x0a0a0a, 1);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.xr.enabled = true;
+            document.getElementById('container').appendChild(renderer.domElement);
+            
+            // Check for VR support
+            if (navigator.xr) {
+                navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
+                    if (supported) {
+                        document.getElementById('vrButton').style.display = 'block';
+                        document.getElementById('vrButton').addEventListener('click', toggleVR);
+                    }
+                });
+            }
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0x00ff88, 1);
+            directionalLight.position.set(50, 50, 50);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+            
+            const pointLight = new THREE.PointLight(0xff6b00, 0.8, 100);
+            pointLight.position.set(0, 30, 0);
+            scene.add(pointLight);
+            
+            // Grid
+            gridHelper = new THREE.GridHelper(100, 20, 0x00ff88, 0x333333);
+            gridHelper.position.y = -10;
+            scene.add(gridHelper);
+            
+            // Initial starfield (will be replaced by 360° skybox in VR)
+            createStarField();
+            
+            // VR controllers
+            setupVRControllers();
+            
+            // Event listeners
+            setupEventListeners();
+            
+            // Start render loop
+            animate();
+            
+            // Load initial block
+            loadBlock(777777); // A memorable block number that will show rich effects
+        }
+        
+        function toggleVR() {
+            if (isVRActive) {
+                exitVR();
+            } else {
+                enterVR();
+            }
+        }
+        
+        function enterVR() {
+            navigator.xr.requestSession('immersive-vr').then((session) => {
+                vrSession = session;
+                renderer.xr.setSession(session);
+                
+                session.addEventListener('end', () => {
+                    exitVR();
+                });
+                
+                session.requestReferenceSpace('local').then((refSpace) => {
+                    vrRefSpace = refSpace;
+                    isVRActive = true;
+                    
+                    document.getElementById('vrButton').textContent = '🥽 Exit VR';
+                    document.getElementById('vrButton').classList.add('vr-active');
+                    
+                    // Recreate current block with VR enhancements
+                    if (currentBlock) {
+                        createBlockVisualization(currentBlock);
+                    }
+                });
+            }).catch((error) => {
+                console.error('VR not available:', error);
+                alert('VR not available. Make sure you\'re using a VR-capable browser.');
+            });
+        }
+        
+        function exitVR() {
+            if (vrSession) {
+                vrSession.end();
+            }
+            
+            isVRActive = false;
+            vrSession = null;
+            vrRefSpace = null;
+            
+            document.getElementById('vrButton').textContent = '🥽 Enter 360° VR';
+            document.getElementById('vrButton').classList.remove('vr-active');
+            
+            // Recreate block without VR-specific elements
+            if (currentBlock) {
+                createBlockVisualization(currentBlock);
+            }
+        }
+        
+        function setupVRControllers() {
+            // Controller 1
+            const controller1 = renderer.xr.getController(0);
+            controller1.addEventListener('selectstart', onVRSelectStart);
+            controller1.addEventListener('selectend', onVRSelectEnd);
+            controller1.addEventListener('select', onVRSelect);
+            scene.add(controller1);
+            vrControllers.push(controller1);
+            
+            // Controller 2
+            const controller2 = renderer.xr.getController(1);
+            controller2.addEventListener('selectstart', onVRSelectStart);
+            controller2.addEventListener('selectend', onVRSelectEnd);
+            controller2.addEventListener('select', onVRSelect);
+            scene.add(controller2);
+            vrControllers.push(controller2);
+            
+            // Add controller models
+            vrControllers.forEach((controller, index) => {
+                const geometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(0, 0, 0),
+                    new THREE.Vector3(0, 0, -1)
+                ]);
+                const line = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: 0x00ff88 }));
+                line.name = 'line';
+                line.scale.z = 5;
+                controller.add(line);
+            });
+            
+            // Teleport marker
+            vrTeleportMarker = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.5, 0.5, 0.1, 16),
+                new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.6 })
+            );
+            vrTeleportMarker.visible = false;
+            scene.add(vrTeleportMarker);
+        }
+        
+        function createStarField() {
+            const starGeometry = new THREE.BufferGeometry();
+            const starCount = 1000;
+            const positions = new Float32Array(starCount * 3);
+            
+            for (let i = 0; i < starCount * 3; i++) {
+                positions[i] = (Math.random() - 0.5) * 400;
+            }
+            
+            starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            
+            const starMaterial = new THREE.PointsMaterial({
+                color: 0xffffff,
+                size: 0.5,
+                transparent: true,
+                opacity: 0.8
+            });
+            
+            particles = new THREE.Points(starGeometry, starMaterial);
+            scene.add(particles);
+        }
+        
+        function createBlockVisualization(blockData) {
+            // Remove previous block visualization
+            if (blockMesh) {
+                scene.remove(blockMesh);
+            }
+            
+            // Create main block structure with unique effects
+            const group = new THREE.Group();
+            
+            // Analyze block data for comprehensive effect parameters
+            const effects = analyzeBlockData(blockData);
+            
+            // VR optimization: reduce particle count in VR for performance
+            if (isVRActive) {
+                effects.particleDensity = Math.floor(effects.particleDensity * 0.6);
+                effects.geometricComplexity = Math.floor(effects.geometricComplexity * 0.8);
+                
+                // Create 360° skybox for VR
+                createProceduralSkybox(effects);
+                
+                // Add surrounding particle field
+                const surroundingParticles = createSurroundingParticleField(effects);
+                group.add(surroundingParticles);
+                
+                // Add 360° data spheres
+                const dataSpheres = create360DataSphere(blockData, effects);
+                group.add(dataSpheres);
+                
+                // Add immersive transaction cloud
+                const txCloud = createImmersiveTransactionCloud(blockData, effects);
+                group.add(txCloud);
+            }
+            
+            // Central block with unique geometry and materials
+            const { geometry, material } = createDynamicBlockGeometry(blockData, effects);
+            const block = new THREE.Mesh(geometry, material);
+            
+            // VR scaling: make blocks larger for room-scale interaction
+            const vrScale = isVRActive ? 2.0 : 1.0;
+            block.scale.setScalar(vrScale);
+            block.position.y = effects.heightOffset;
+            block.castShadow = true;
+            block.receiveShadow = true;
+            
+            group.add(block);
+            
+            // Add data-driven elements
+            addDataDrivenElements(group, blockData, effects);
+            
+            blockMesh = group;
+            scene.add(blockMesh);
+            
+            // Camera animation (skip in VR to avoid motion sickness)
+            if (!isVRActive) {
+                animateCameraWithBiome(block.position, effects);
+            }
+        }
+        
+        function createProceduralSkybox(effects) {
+            // Remove existing skybox if any
+            const existingSkybox = scene.getObjectByName('skybox');
+            if (existingSkybox) scene.remove(existingSkybox);
+            
+            // Create procedural skybox based on block data
+            const skyboxGeometry = new THREE.SphereGeometry(500, 64, 32);
+            skyboxGeometry.scale(-1, 1, 1); // Inside-out sphere
+            
+            // Create gradient material for dynamic skybox
+            const skyboxMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    time: { value: 0 },
+                    primaryHue: { value: effects.primaryHue },
+                    secondaryHue: { value: effects.secondaryHue },
+                    complexity: { value: effects.complexity },
+                    energyLevel: { value: effects.energyLevel }
+                },
+                vertexShader: `
+                    varying vec3 vWorldPosition;
+                    void main() {
+                        vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                        vWorldPosition = worldPosition.xyz;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform float time;
+                    uniform float primaryHue;
+                    uniform float secondaryHue;
+                    uniform float complexity;
+                    uniform float energyLevel;
+                    varying vec3 vWorldPosition;
+                    
+                    vec3 hsv2rgb(vec3 c) {
+                        vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+                        vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+                        return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+                    }
+                    
+                    void main() {
+                        vec3 direction = normalize(vWorldPosition);
+                        float elevation = direction.y;
+                        float azimuth = atan(direction.z, direction.x);
+                        
+                        // Create dynamic gradient based on block data
+                        vec3 topColor = hsv2rgb(vec3(primaryHue, 0.8, 0.3 + energyLevel * 0.3));
+                        vec3 horizonColor = hsv2rgb(vec3(secondaryHue, 0.9, 0.2));
+                        vec3 bottomColor = hsv2rgb(vec3(primaryHue + 0.5, 0.6, 0.1));
+                        
+                        float gradientFactor = elevation * 0.5 + 0.5;
+                        vec3 skyColor = mix(bottomColor, mix(horizonColor, topColor, gradientFactor), gradientFactor);
+                        
+                        // Add some noise for complexity
+                        float noise = sin(azimuth * 10.0 + time) * sin(elevation * 8.0 + time * 0.5) * complexity * 0.1;
+                        skyColor += noise;
+                        
+                        gl_FragColor = vec4(skyColor, 1.0);
+                    }
+                `,
+                side: THREE.BackSide,
+                depthWrite: false
+            });
+            
+            const skybox = new THREE.Mesh(skyboxGeometry, skyboxMaterial);
+            skybox.name = 'skybox';
+            scene.add(skybox);
+            
+            return skybox;
+        }
+        
+        function createSurroundingParticleField(effects) {
+            const particleCount = effects.particleDensity * 2;
+            const positions = new Float32Array(particleCount * 3);
+            const colors = new Float32Array(particleCount * 3);
+            
+            for (let i = 0; i < particleCount; i++) {
+                const i3 = i * 3;
+                
+                // Create spherical distribution around the user
+                const radius = 15 + Math.random() * 60;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.random() * Math.PI;
+                
+                positions[i3] = radius * Math.sin(phi) * Math.cos(theta);
+                positions[i3 + 1] = radius * Math.cos(phi);
+                positions[i3 + 2] = radius * Math.sin(phi) * Math.sin(theta);
+                
+                // Color based on distance and effects
+                const distanceRatio = radius / 75;
+                const hue = (effects.primaryHue + distanceRatio * 0.3 + Math.random() * 0.1) % 1;
+                const color = new THREE.Color().setHSL(hue, 0.8, 0.6);
+                
+                colors[i3] = color.r;
+                colors[i3 + 1] = color.g;
+                colors[i3 + 2] = color.b;
+            }
+            
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            
+            const material = new THREE.PointsMaterial({
+                size: 0.5,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.6,
+                blending: THREE.AdditiveBlending
+            });
+            
+            const particles = new THREE.Points(geometry, material);
+            particles.userData = { type: 'surrounding-particles' };
+            
+            return particles;
+        }
+        
+        function create360DataSphere(blockData, effects) {
+            const sphereCount = 3;
+            const spheres = new THREE.Group();
+            
+            for (let i = 0; i < sphereCount; i++) {
+                const radius = 25 + i * 10;
+                const segments = 24 + i * 8;
+                
+                const geometry = new THREE.SphereGeometry(radius, segments, segments / 2);
+                const material = new THREE.MeshBasicMaterial({
+                    color: new THREE.Color().setHSL((effects.primaryHue + i * 0.2) % 1, 0.8, 0.5),
+                    transparent: true,
+                    opacity: 0.1 - i * 0.02,
+                    wireframe: true
+                });
+                
+                const sphere = new THREE.Mesh(geometry, material);
+                sphere.userData = { type: 'data-sphere', rotationSpeed: 0.001 + i * 0.0005 };
+                
+                spheres.add(sphere);
+            }
+            
+            return spheres;
+        }
+        
+        function createImmersiveTransactionCloud(blockData, effects) {
+            const txCount = Math.min(blockData.tx_count || 2000, 300);
+            const group = new THREE.Group();
+            
+            for (let i = 0; i < txCount; i++) {
+                const radius = 10 + Math.random() * 40;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.random() * Math.PI;
+                
+                const size = 0.05 + Math.random() * 0.15;
+                const geometry = new THREE.SphereGeometry(size, 6, 4);
+                
+                const value = Math.random();
+                const material = new THREE.MeshPhongMaterial({
+                    color: new THREE.Color().setHSL(effects.secondaryHue + value * 0.3, 0.9, 0.6),
+                    emissive: new THREE.Color().setHSL(effects.secondaryHue + value * 0.3, 1.0, 0.2),
+                    emissiveIntensity: 0.4,
+                    transparent: true,
+                    opacity: 0.7
+                });
+                
+                const tx = new THREE.Mesh(geometry, material);
+                tx.position.x = radius * Math.sin(phi) * Math.cos(theta);
+                tx.position.y = radius * Math.cos(phi);
+                tx.position.z = radius * Math.sin(phi) * Math.sin(theta);
+                
+                tx.userData = {
+                    type: 'immersive-transaction',
+                    orbitSpeed: 0.001 + Math.random() * 0.002,
+                    floatSpeed: 0.005 + Math.random() * 0.01,
+                    originalPosition: tx.position.clone(),
+                    value: value
+                };
+                
+                group.add(tx);
+            }
+            
+            return group;
+        }
+        
+        function analyzeBlockData(blockData) {
+            const hashInt = parseInt(blockData.id.substring(0, 8), 16);
+            const merkleInt = parseInt(blockData.merkle_root?.substring(0, 8) || '0', 16);
+            
+            const sizeRatio = blockData.size / 1000000;
+            const txIntensity = Math.min(blockData.tx_count / 3000, 1);
+            const difficultyLog = Math.log10(blockData.difficulty || 1e20);
+            const heightMod = (blockData.height || 0) % 1000 / 1000;
+            
+            return {
+                blockSize: Math.log(blockData.size / 1000) * 2 + 1,
+                txIntensity: txIntensity,
+                heightOffset: (blockData.height || 0) / 100000,
+                
+                primaryHue: (hashInt % 360) / 360,
+                secondaryHue: ((merkleInt % 360) / 360 + 0.3) % 1,
+                complexity: sizeRatio * txIntensity,
+                
+                hashSeed: hashInt,
+                merkleSeed: merkleInt,
+                
+                energyLevel: Math.min(difficultyLog / 25, 1),
+                particleDensity: Math.floor(txIntensity * 150) + 30,
+                geometricComplexity: Math.floor(sizeRatio * 15) + 3,
+                
+                blockId: blockData.height || 0
+            };
+        }
+        
+        function createDynamicBlockGeometry(blockData, effects) {
+            const baseSize = effects.blockSize;
+            const geoType = effects.hashSeed % 6;
+            
+            let geometry;
+            switch (geoType) {
+                case 0:
+                    geometry = new THREE.BoxGeometry(baseSize, baseSize, baseSize);
+                    break;
+                case 1:
+                    geometry = new THREE.OctahedronGeometry(baseSize * 0.8);
+                    break;
+                case 2:
+                    geometry = new THREE.DodecahedronGeometry(baseSize * 0.7);
+                    break;
+                case 3:
+                    geometry = new THREE.IcosahedronGeometry(baseSize * 0.8);
+                    break;
+                case 4:
+                    geometry = new THREE.TetrahedronGeometry(baseSize);
+                    break;
+                default:
+                    geometry = new THREE.SphereGeometry(baseSize * 0.8, 16, 12);
+            }
+            
+            const baseColor = new THREE.Color().setHSL(effects.primaryHue, 0.8, 0.5);
+            const emissiveColor = new THREE.Color().setHSL(effects.secondaryHue, 1, 0.3);
+            
+            const material = new THREE.MeshPhongMaterial({
+                color: baseColor,
+                emissive: emissiveColor,
+                emissiveIntensity: 0.3,
+                transparent: true,
+                opacity: 0.8
+            });
+            
+            return { geometry, material };
+        }
+        
+        function addDataDrivenElements(group, blockData, effects) {
+            // Hash-based pillars
+            const hashChars = blockData.id.slice(0, 16);
+            
+            for (let i = 0; i < hashChars.length; i++) {
+                const char = hashChars[i];
+                const value = parseInt(char, 16) / 15;
+                const height = value * 4 + 0.5;
+                
+                const geometry = new THREE.CylinderGeometry(0.1, 0.15, height, 8);
+                const material = new THREE.MeshPhongMaterial({
+                    color: new THREE.Color().setHSL((value + effects.primaryHue) % 1, 0.8, 0.6),
+                    transparent: true,
+                    opacity: 0.7 + value * 0.3,
+                    emissive: new THREE.Color().setHSL((value + effects.primaryHue) % 1, 1, 0.3),
+                    emissiveIntensity: 0.4
+                });
+                
+                const pillar = new THREE.Mesh(geometry, material);
+                const angle = (i / hashChars.length) * Math.PI * 2;
+                const radius = effects.blockSize * 3;
+                
+                pillar.position.x = Math.cos(angle) * radius;
+                pillar.position.z = Math.sin(angle) * radius;
+                pillar.position.y = effects.heightOffset + height / 2;
+                
+                pillar.userData = {
+                    type: 'hash-pillar',
+                    rotationSpeed: value * 0.02
+                };
+                
+                group.add(pillar);
+            }
+            
+            // Transaction orbitals
+            const orbitCount = Math.min(Math.floor(effects.txIntensity * 25), 30);
+            
+            for (let i = 0; i < orbitCount; i++) {
+                const angle = (i / orbitCount) * Math.PI * 2;
+                const radius = effects.blockSize * 2 + (i % 3) * 2;
+                
+                const txGeometry = new THREE.SphereGeometry(0.1, 6, 4);
+                const txMaterial = new THREE.MeshPhongMaterial({
+                    color: new THREE.Color().setHSL(effects.secondaryHue, 1, 0.6),
+                    emissive: new THREE.Color().setHSL(effects.secondaryHue, 1, 0.3),
+                    emissiveIntensity: 0.4
+                });
+                
+                const tx = new THREE.Mesh(txGeometry, txMaterial);
+                tx.position.x = Math.cos(angle) * radius;
+                tx.position.z = Math.sin(angle) * radius;
+                tx.position.y = effects.heightOffset;
+                
+                tx.userData = {
+                    type: 'orbital',
+                    angle: angle,
+                    radius: radius,
+                    speed: 0.01 + effects.energyLevel * 0.02
+                };
+                
+                group.add(tx);
+            }
+        }
+        
+        function animateCameraWithBiome(targetPosition, effects) {
+            const startPos = camera.position.clone();
+            const distance = 25 + effects.complexity * 10;
+            const height = 15 + effects.energyLevel * 10;
+            const baseAngle = effects.primaryHue * Math.PI * 2;
+            
+            const endPos = new THREE.Vector3(
+                targetPosition.x + Math.cos(baseAngle) * distance,
+                targetPosition.y + height,
+                targetPosition.z + Math.sin(baseAngle) * distance
+            );
+            
+            let progress = 0;
+            const duration = 2000;
+            const startTime = Date.now();
+            
+            function updateCamera() {
+                const elapsed = Date.now() - startTime;
+                progress = Math.min(elapsed / duration, 1);
+                
+                const eased = 1 - Math.pow(1 - progress, 2);
+                camera.position.lerpVectors(startPos, endPos, eased);
+                camera.lookAt(targetPosition);
+                
+                if (progress < 1) {
+                    requestAnimationFrame(updateCamera);
+                }
+            }
+            
+            updateCamera();
+        }
+        
+        async function loadBlock(blockIdentifier) {
+            const loadingEl = document.getElementById('loading');
+            const blockInfoEl = document.getElementById('blockInfo');
+            
+            loadingEl.style.display = 'block';
+            blockInfoEl.style.display = 'none';
+            
+            try {
+                let blockData;
+                
+                // Try mempool.space API first
+                try {
+                    if (typeof mempoolJS !== 'undefined') {
+                        const { bitcoin } = mempoolJS();
+                        
+                        if (typeof blockIdentifier === 'string' && blockIdentifier.length === 64) {
+                            blockData = await bitcoin.blocks.getBlock({ hash: blockIdentifier });
+                        } else {
+                            const blockHash = await bitcoin.blocks.getBlockHash({ height: blockIdentifier });
+                            blockData = await bitcoin.blocks.getBlock({ hash: blockHash });
+                        }
+                    }
+                } catch (e) {
+                    console.log('Mempool.space failed:', e);
+                }
+                
+                // Fallback to demo data if APIs fail
+                if (!blockData) {
+                    console.log('Using demo data for visualization...');
+                    blockData = generateDemoBlockData(blockIdentifier);
+                }
+                
+                // Normalize the data structure
+                currentBlock = {
+                    id: blockData.id || blockData.hash,
+                    height: blockData.height,
+                    timestamp: blockData.timestamp,
+                    size: blockData.size,
+                    weight: blockData.weight || blockData.size * 4,
+                    tx_count: blockData.tx_count,
+                    difficulty: blockData.difficulty,
+                    nonce: blockData.nonce,
+                    previousblockhash: blockData.previousblockhash,
+                    merkle_root: blockData.merkle_root
+                };
+                
+                createBlockVisualization(currentBlock);
+                updateBlockInfo(currentBlock);
+                
+                loadingEl.style.display = 'none';
+                blockInfoEl.style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error loading block:', error);
+                loadingEl.textContent = 'Showing demo data - API currently unavailable';
+                
+                const demoData = generateDemoBlockData(blockIdentifier);
+                currentBlock = demoData;
+                createBlockVisualization(demoData);
+                updateBlockInfo(demoData);
+                
+                loadingEl.style.display = 'none';
+                blockInfoEl.style.display = 'block';
+            }
+        }
+        
+        function generateDemoBlockData(blockIdentifier) {
+            const height = typeof blockIdentifier === 'number' ? blockIdentifier : 650000;
+            const baseTime = 1577836800;
+            const blockTime = baseTime + (height - 600000) * 600;
+            
+            const seed = height * 31337;
+            const pseudoRandom = (n) => (Math.sin(seed + n) * 10000) % 1;
+            
+            return {
+                id: generateDemoHash(height),
+                height: height,
+                timestamp: blockTime,
+                size: 800000 + Math.floor(Math.abs(pseudoRandom(1)) * 400000),
+                weight: 3200000 + Math.floor(Math.abs(pseudoRandom(2)) * 800000),
+                tx_count: 1500 + Math.floor(Math.abs(pseudoRandom(3)) * 1500),
+                difficulty: Math.pow(10, 22) * (1 + Math.abs(pseudoRandom(4))),
+                nonce: Math.floor(Math.abs(pseudoRandom(5)) * 4294967295),
+                previousblockhash: generateDemoHash(height - 1),
+                merkle_root: generateDemoHash(height + 12345)
+            };
+        }
+        
+        function generateDemoHash(seed) {
+            let hash = '';
+            for (let i = 0; i < 64; i++) {
+                const char = Math.floor(Math.abs(Math.sin(seed * 31337 + i) * 16)) % 16;
+                hash += char.toString(16);
+            }
+            return hash;
+        }
+        
+        function updateBlockInfo(blockData) {
+            const blockDetailsEl = document.getElementById('blockDetails');
+            const timestamp = new Date(blockData.timestamp * 1000);
+            
+            blockDetailsEl.innerHTML = `
+                <div style="color: #888; font-size: 10px; margin-bottom: 10px;">
+                    🌍 360° VR Mode Available
+                </div>
+                <div><span class="info-label">Height:</span> <span class="info-value">${blockData.height.toLocaleString()}</span></div>
+                <div><span class="info-label">Hash:</span> <span class="info-value">${blockData.id.substring(0, 16)}...</span></div>
+                <div><span class="info-label">Timestamp:</span> <span class="info-value">${timestamp.toLocaleString()}</span></div>
+                <div><span class="info-label">Size:</span> <span class="info-value">${(blockData.size / 1024).toFixed(2)} KB</span></div>
+                <div><span class="info-label">Transactions:</span> <span class="info-value">${blockData.tx_count.toLocaleString()}</span></div>
+                <div><span class="info-label">Difficulty:</span> <span class="info-value">${blockData.difficulty ? blockData.difficulty.toExponential(2) : 'N/A'}</span></div>
+            `;
+        }
+        
+        function setupEventListeners() {
+            const searchInput = document.getElementById('searchInput');
+            const searchBtn = document.getElementById('searchBtn');
+            const randomBtn = document.getElementById('randomBtn');
+            const hideToggle = document.getElementById('hideToggle');
+            
+            searchBtn.addEventListener('click', () => {
+                const input = searchInput.value.trim();
+                if (input) {
+                    const blockId = isNaN(input) ? input : parseInt(input);
+                    loadBlock(blockId);
+                }
+            });
+            
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    searchBtn.click();
+                }
+            });
+            
+            randomBtn.addEventListener('click', () => {
+                const randomHeight = Math.floor(Math.random() * 400000) + 400000;
+                searchInput.value = randomHeight;
+                loadBlock(randomHeight);
+            });
+            
+            hideToggle.addEventListener('click', toggleUI);
+            
+            // Mouse controls
+            renderer.domElement.addEventListener('mousedown', onMouseDown);
+            renderer.domElement.addEventListener('mousemove', onMouseMove);
+            renderer.domElement.addEventListener('mouseup', onMouseUp);
+            renderer.domElement.addEventListener('wheel', onMouseWheel);
+            
+            // Keyboard controls
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('keyup', onKeyUp);
+            
+            window.addEventListener('resize', onWindowResize);
+        }
+        
+        let uiVisible = true;
+        
+        function toggleUI() {
+            const ui = document.getElementById('ui');
+            const blockInfo = document.getElementById('blockInfo');
+            const controls = document.getElementById('controls');
+            const immersiveInfo = document.getElementById('immersiveInfo');
+            const hideToggle = document.getElementById('hideToggle');
+            
+            uiVisible = !uiVisible;
+            
+            if (uiVisible) {
+                ui.classList.remove('ui-hidden');
+                ui.classList.add('ui-visible');
+                blockInfo.classList.remove('ui-hidden');
+                blockInfo.classList.add('ui-visible');
+                controls.classList.remove('ui-hidden');
+                controls.classList.add('ui-visible');
+                immersiveInfo.classList.remove('ui-hidden');
+                immersiveInfo.classList.add('ui-visible');
+                hideToggle.innerHTML = '👁️';
+                hideToggle.title = 'Hide UI (Press H)';
+                hideToggle.classList.remove('ui-hidden-state');
+            } else {
+                ui.classList.remove('ui-visible');
+                ui.classList.add('ui-hidden');
+                blockInfo.classList.remove('ui-visible');
+                blockInfo.classList.add('ui-hidden');
+                controls.classList.remove('ui-visible');
+                controls.classList.add('ui-hidden');
+                immersiveInfo.classList.remove('ui-visible');
+                immersiveInfo.classList.add('ui-hidden');
+                hideToggle.innerHTML = '🎨';
+                hideToggle.title = 'Show UI (Press H)';
+                hideToggle.classList.add('ui-hidden-state');
+            }
+        }
+        
+        function onMouseDown(event) {
+            isMouseDown = true;
+            mouseX = event.clientX;
+            mouseY = event.clientY;
+        }
+        
+        function onMouseMove(event) {
+            if (!isMouseDown) return;
+            
+            const deltaX = event.clientX - mouseX;
+            const deltaY = event.clientY - mouseY;
+            
+            const spherical = new THREE.Spherical();
+            spherical.setFromVector3(camera.position);
+            
+            spherical.theta -= deltaX * 0.01;
+            spherical.phi += deltaY * 0.01;
+            spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
+            
+            camera.position.setFromSpherical(spherical);
+            camera.lookAt(0, 0, 0);
+            
+            mouseX = event.clientX;
+            mouseY = event.clientY;
+        }
+        
+        function onMouseUp() {
+            isMouseDown = false;
+        }
+        
+        function onMouseWheel(event) {
+            const delta = event.deltaY * 0.01;
+            const direction = new THREE.Vector3();
+            camera.getWorldDirection(direction);
+            camera.position.add(direction.multiplyScalar(delta));
+        }
+        
+        function onKeyDown(event) {
+            switch(event.code) {
+                case 'KeyW': keys.w = true; break;
+                case 'KeyA': keys.a = true; break;
+                case 'KeyS': keys.s = true; break;
+                case 'KeyD': keys.d = true; break;
+                case 'KeyH': 
+                    event.preventDefault();
+                    toggleUI(); 
+                    break;
+            }
+        }
+        
+        function onKeyUp(event) {
+            switch(event.code) {
+                case 'KeyW': keys.w = false; break;
+                case 'KeyA': keys.a = false; break;
+                case 'KeyS': keys.s = false; break;
+                case 'KeyD': keys.d = false; break;
+            }
+        }
+        
+        function updateCameraMovement() {
+            if (isVRActive) return; // Don't move camera in VR
+            
+            const speed = 0.5;
+            const direction = new THREE.Vector3();
+            
+            if (keys.w) {
+                camera.getWorldDirection(direction);
+                camera.position.add(direction.multiplyScalar(speed));
+            }
+            if (keys.s) {
+                camera.getWorldDirection(direction);
+                camera.position.add(direction.multiplyScalar(-speed));
+            }
+            if (keys.a) {
+                direction.set(-1, 0, 0);
+                direction.applyQuaternion(camera.quaternion);
+                camera.position.add(direction.multiplyScalar(speed));
+            }
+            if (keys.d) {
+                direction.set(1, 0, 0);
+                direction.applyQuaternion(camera.quaternion);
+                camera.position.add(direction.multiplyScalar(speed));
+            }
+        }
+        
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        // VR event handlers
+        function onVRSelectStart(event) {
+            const controller = event.target;
+            controller.userData.isSelecting = true;
+        }
+        
+        function onVRSelectEnd(event) {
+            const controller = event.target;
+            controller.userData.isSelecting = false;
+            vrTeleportMarker.visible = false;
+        }
+        
+        function onVRSelect(event) {
+            console.log('VR select - controller interaction');
+        }
+        
+        function animate() {
+            renderer.setAnimationLoop(render);
+        }
+        
+        function render() {
+            updateCameraMovement();
+            
+            // Animate block mesh with all effects
+            if (blockMesh) {
+                animateBlockEffects();
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        function animateBlockEffects() {
+            const time = Date.now() * 0.001;
+            
+            // Update skybox
+            const skybox = scene.getObjectByName('skybox');
+            if (skybox && skybox.material.uniforms) {
+                skybox.material.uniforms.time.value = time;
+            }
+            
+            blockMesh.children.forEach(child => {
+                if (!child.userData.type) return;
+                
+                switch (child.userData.type) {
+                    case 'surrounding-particles':
+                        child.rotation.y += 0.0002;
+                        break;
+                    case 'data-sphere':
+                        child.rotation.x += child.userData.rotationSpeed;
+                        child.rotation.y += child.userData.rotationSpeed * 1.3;
+                        break;
+                    case 'immersive-transaction':
+                        const userData = child.userData;
+                        const orbitTime = time * userData.orbitSpeed;
+                        const orbitRadius = userData.originalPosition.length();
+                        const newAngle = Math.atan2(userData.originalPosition.z, userData.originalPosition.x) + orbitTime;
+                        
+                        child.position.x = Math.cos(newAngle) * orbitRadius;
+                        child.position.z = Math.sin(newAngle) * orbitRadius;
+                        child.position.y = userData.originalPosition.y + Math.sin(time * userData.floatSpeed) * 2;
+                        
+                        const txPulse = 1 + Math.sin(time * 3 + userData.value * 10) * 0.1;
+                        child.scale.setScalar(txPulse);
+                        break;
+                    case 'hash-pillar':
+                        child.rotation.y += child.userData.rotationSpeed;
+                        break;
+                    case 'orbital':
+                        const orbital = child.userData;
+                        orbital.angle += orbital.speed;
+                        child.position.x = Math.cos(orbital.angle) * orbital.radius;
+                        child.position.z = Math.sin(orbital.angle) * orbital.radius;
+                        child.rotation.y += 0.02;
+                        break;
+                }
+            });
+            
+            blockMesh.rotation.y += 0.001;
+        }
+        
+        // Initialize the application
+        init();
+    </script>
+</body>
+</html>
